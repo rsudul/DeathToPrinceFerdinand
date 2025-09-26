@@ -1,0 +1,11 @@
+# Godot 4
+.godot/
+
+# Rider / VS / VS Code clutter (optional niceties)
+.idea/
+.vs/
+.vscode/*-workspace.json
+
+# OS junk
+.DS_Store
+Thumbs.db
