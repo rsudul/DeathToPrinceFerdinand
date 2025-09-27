@@ -1,11 +1,33 @@
 # Godot 4
 .godot/
+.import/
 
-# Rider / VS / VS Code clutter (optional niceties)
-.idea/
-.vs/
-.vscode/*-workspace.json
+# Mono/C# specific
+bin/
+obj/
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
 
 # OS junk
 .DS_Store
 Thumbs.db
+*.log
