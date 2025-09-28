@@ -2,6 +2,13 @@
 .godot/
 .import/
 
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
 # Mono/C# specific
 bin/
 obj/
