@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PROJECT\DeathToPrinceFerdinand.csproj" />
+    <ProjectReference Include="..\DeathToPrinceFerdinand\DeathToPrinceFerdinand.csproj" />
   </ItemGroup>
 
   <ItemGroup>
