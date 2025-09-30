@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
@@ -235,7 +235,7 @@ namespace DeathToPrinceFerdinand.Tests.Unit
                 Title = "Evidence",
                 Content = new Dictionary<string, object>
                 {
-                    { "time", "11:50" }
+                    { "time", "11:45" }
                 }
             };
 
