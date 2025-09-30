@@ -67,7 +67,7 @@ namespace DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors
                 return CreateNoContradictionResult(query.QueryId, "Testimony or evidence not found");
             }
 
-            var testimonyTimes = ExtractTimesFromText(testimony.CurrentText);
+            var testimonyTimes = ExtractTimesFromTestimony(testimony);
             if (!testimonyTimes.Any())
             {
                 return CreateNoContradictionResult(query.QueryId, "No time information in testimony");
@@ -165,6 +165,45 @@ namespace DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors
             return times.ToArray();
         }
 
+        private TimeInfo[] ExtractTimesFromTestimony(TestimonyStatement testimony)
+        {
+            var times = new List<TimeInfo>();
+
+            if (testimony.Metadata.TryGetValue("claimed_time", out var claimedTime))
+            {
+                var time = ParseTimeString(claimedTime?.ToString() ?? "", "claimed_time");
+                if (time != null)
+                {
+                    times.Add(time);
+                }
+            }
+
+            if (testimony.Metadata.TryGetValue("claimed_time_start", out var startTime))
+            {
+                var time = ParseTimeString(startTime?.ToString() ?? "", "claimed_time_start");
+                if (time != null)
+                {
+                    times.Add(time);
+                }
+            }
+
+            if (testimony.Metadata.TryGetValue("claimed_time_end", out var endTime))
+            {
+                var time = ParseTimeString(endTime?.ToString() ?? "", "claimed_time_end");
+                if (time != null)
+                {
+                    times.Add(time);
+                }
+            }
+
+            if (!times.Any())
+            {
+                times.AddRange(ExtractTimesFromText(testimony.CurrentText));
+            }
+
+            return times.ToArray();
+        }
+
         private TimeInfo[] ExtractTimesFromEvidence(Evidence evidence)
         {
             var times = new List<TimeInfo>();
@@ -190,9 +229,6 @@ namespace DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors
                     }
                 }
             }
-
-            var titleTimes = ExtractTimesFromText(evidence.Title);
-            times.AddRange(titleTimes);
 
             return times.ToArray();
         }

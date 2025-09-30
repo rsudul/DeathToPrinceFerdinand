@@ -1,50 +1,49 @@
 [
   {
-    "id": "ts_assassin_001",
-    "suspectId": "su_assassin_marko",
-    "originalText": "From noon until one I was at Café Lenestra, alone.",
-    "amendedText": null,
-    "timestamp": "1914-06-15T09:30:00",
-    "metadata": {
-      "topic": "alibi",
-      "location": "Café Lenestra",
-      "interrogation_phase": "initial"
-    }
+	"id": "ts_assassin_001",
+	"suspectId": "su_assassin_marko",
+	"originalText": "From noon until one I was at Café Lenestra, alone.",
+	"amendedText": null,
+	"timestamp": "1914-06-15T09:30:00",
+	"metadata": {
+	  "topic": "alibi",
+	  "claimed_location": "Café Lenestra",
+	  "claimed_time_start": "12:00",
+	  "claimed_time_end": "13:00"
+	}
   },
   {
-    "id": "ts_assassin_002",
-    "suspectId": "su_assassin_marko",
-    "originalText": "My train got in around 1 PM. I was late.",
-    "amendedText": null,
-    "timestamp": "1914-06-15T09:35:00",
-    "metadata": {
-      "topic": "arrival",
-      "location": "train_station",
-      "interrogation_phase": "initial"
-    }
+	"id": "ts_assassin_002",
+	"suspectId": "su_assassin_marko",
+	"originalText": "My train got in around 1 PM. I was late.",
+	"amendedText": null,
+	"timestamp": "1914-06-15T09:35:00",
+	"metadata": {
+	  "topic": "arrival",
+	  "claimed_time": "13:00"
+	}
   },
   {
-    "id": "ts_assassin_003",
-    "suspectId": "su_assassin_marko",
-    "originalText": "That ticket isn't mine. Must've been planted.",
-    "amendedText": null,
-    "timestamp": "1914-06-15T09:40:00",
-    "metadata": {
-      "topic": "ticket_denial",
-      "evidence_reference": "ev_tickets_001",
-      "interrogation_phase": "confrontation"
-    }
+	"id": "ts_assassin_003",
+	"suspectId": "su_assassin_marko",
+	"originalText": "That ticket isn't mine. Must've been planted.",
+	"amendedText": null,
+	"timestamp": "1914-06-15T09:40:00",
+	"metadata": {
+	  "topic": "ticket_denial",
+	  "evidence_reference": "ev_tickets_001"
+	}
   },
   {
-    "id": "ts_assassin_004",
-    "suspectId": "su_assassin_marko",
-    "originalText": "I ate at 12:45. You can check.",
-    "amendedText": null,
-    "timestamp": "1914-06-15T09:45:00",
-    "metadata": {
-      "topic": "café_timing",
-      "location": "Café Lenestra",
-      "interrogation_phase": "detail"
-    }
+	"id": "ts_assassin_004",
+	"suspectId": "su_assassin_marko",
+	"originalText": "I ate at 12:45. You can check.",
+	"amendedText": null,
+	"timestamp": "1914-06-15T09:45:00",
+	"metadata": {
+	  "topic": "café_timing",
+	  "claimed_location": "Café Lenestra",
+	  "claimed_time": "12:45"
+	}
   }
 ]
