@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using DeathToPrinceFerdinand.scripts.Core.Contradictions;
+using DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors;
 using DeathToPrinceFerdinand.scripts.Core.Services;
 using DeathToPrinceFerdinand.scripts.Infrastructure;
 
@@ -20,6 +21,8 @@ namespace DeathToPrinceFerdinand.scripts.Core.DependencyInjection
             services.AddScoped<IEvidenceQueryService, EvidenceQueryService>();
 
             services.AddScoped<IContradictionQueryFactory, ContradictionQueryFactory>();
+
+            services.AddScoped<IContradictionDetector, TimelineContradictionsDetector>();
 
             return services;
         }

@@ -1,0 +1,89 @@
+[
+  {
+    "id": "ev_tickets_001",
+    "category": "tickets",
+    "title": "Train Ticket - Dravik to Varnograd",
+    "content": {
+      "passenger_name": "N. Petrovic",
+      "departure": "Dravik Station",
+      "destination": "Varnograd",
+      "departure_time": "10:00",
+      "arrival_time": "11:50",
+      "date": "1914-06-14",
+      "notes": "Conductor's pencil mark"
+    },
+    "uiDisplay": {
+      "header": "Train Ticket, 11:50 Arrival, Varnograd",
+      "description": "Dravik Station → Varnograd. Departure: 10:00 AM. Arrival: 11:50 AM. 14 June 1914.",
+      "visualElements": ["stamped", "handwritten_notes"]
+    }
+  },
+  {
+    "id": "ev_documents_001",
+    "category": "documents",
+    "title": "Café Lenestra Receipt",
+    "content": {
+      "location": "Café Lenestra",
+      "time": "12:15",
+      "date": "1914-06-14",
+      "items": "One meal & coffee",
+      "payment": "Paid cash",
+      "notes": "Ink smudge over total"
+    },
+    "uiDisplay": {
+      "header": "Café Receipt - 12:15 PM",
+      "description": "Café Lenestra — 12:15 PM, 14 June. One meal & coffee. Paid cash.",
+      "visualElements": ["ink_smudge", "receipt_stamp"]
+    }
+  },
+  {
+    "id": "ev_photos_001",
+    "category": "photos",
+    "title": "Surveillance Photo - North Gate",
+    "content": {
+      "location": "North Gate",
+      "time": "12:05",
+      "date": "1914-06-14",
+      "subject": "Subject matches suspect profile",
+      "notes": "Seen heading toward parade route"
+    },
+    "uiDisplay": {
+      "header": "Surveillance Photo - North Gate, 12:05 PM",
+      "description": "Subject at North Gate, 12:05 PM, 14 June. Handwritten note: 'Seen heading toward parade route.'",
+      "visualElements": ["photograph", "handwritten_annotation"]
+    }
+  },
+  {
+    "id": "ev_documents_002",
+    "category": "documents",
+    "title": "Work Permit - Marko Jovanović",
+    "content": {
+      "full_name": "Marko Jovanović",
+      "occupation": "Factory Laborer",
+      "issued_date": "1914-05-01",
+      "valid_until": "1914-06-30",
+      "issuing_authority": "Ministry of Labor"
+    },
+    "uiDisplay": {
+      "header": "Work Permit - Marko Jovanović",
+      "description": "Issued to: Marko Jovanović. Employment: Factory Laborer. Valid through 30 June 1914.",
+      "visualElements": ["official_stamp", "typewritten"]
+    }
+  },
+  {
+    "id": "ev_objects_001",
+    "category": "objects",
+    "title": "Calling Card - Half-burned",
+    "content": {
+      "initial": "V.",
+      "watermark": "Karstovian Trade & Export Guild",
+      "condition": "Half-burned, partially legible",
+      "notes": "Recovered during interrogation"
+    },
+    "uiDisplay": {
+      "header": "Calling Card - Initial 'V.'",
+      "description": "Half-burned calling card with initial 'V.' and faint watermark of Karstovian Trade & Export Guild.",
+      "visualElements": ["burned_edges", "watermark"]
+    }
+  }
+]
