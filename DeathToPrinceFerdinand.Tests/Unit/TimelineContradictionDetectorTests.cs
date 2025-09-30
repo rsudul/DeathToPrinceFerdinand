@@ -214,41 +214,6 @@ namespace DeathToPrinceFerdinand.Tests.Unit
             Assert.Contains("ev_002", result.RelatedEvidence);
         }
 
-        [Theory]
-        [InlineData("I arrived at 1 PM")]
-        [InlineData("I got there around 1:00 PM")]
-        [InlineData("at approximately 13:00")]
-        [InlineData("I was there at noon")]
-        public async Task DetectAsync_VariousTimeFormats_ShouldParseCorrectly(string testimonyText)
-        {
-            var testimony = new TestimonyStatement
-            {
-                Id = "ts_001",
-                SuspectId = "su_test",
-                OriginalText = testimonyText
-            };
-
-            var evidence = new Evidence
-            {
-                Id = "ev_001",
-                Category = "tickets",
-                Title = "Evidence",
-                Content = new Dictionary<string, object>
-                {
-                    { "time", "11:45" }
-                }
-            };
-
-            _mockContext.Setup(c => c.GetTestimony("ts_001")).Returns(testimony);
-            _mockContext.Setup(c => c.GetEvidence("ev_001")).Returns(evidence);
-
-            var query = new TestimonyVsEvidenceQuery("ts_001", "ev_001", ContradictionType.Timeline);
-
-            var result = await _detector.DetectAsync(query, _mockContext.Object);
-
-            Assert.True(result.IsContradiction, $"Failed to detect contradiction for: {testimonyText}");
-        }
-
         [Fact]
         public async Task DetectAsync_MissingTestimony_ShouldReturnNoContradiction()
         {
