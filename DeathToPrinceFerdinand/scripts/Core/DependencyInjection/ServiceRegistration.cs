@@ -24,6 +24,7 @@ namespace DeathToPrinceFerdinand.scripts.Core.DependencyInjection
 
             services.AddScoped<IContradictionDetector, TimelineContradictionsDetector>();
             services.AddScoped<IContradictionDetector, LocationContradictionDetector>();
+            services.AddScoped<IContradictionDetector, IdentityContradictionDetector>();
 
             return services;
         }
