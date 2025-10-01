@@ -23,6 +23,22 @@ namespace DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors
             }
         }
 
+        private class TimeRange : TimeInfo
+        {
+            public TimeSpan EndTime { get; }
+
+            public TimeRange(TimeSpan startTime, TimeSpan endTime, string fieldName, string context)
+                : base(startTime, fieldName, context)
+            {
+                EndTime = endTime;
+            }
+
+            public bool ContainsTime(TimeSpan time)
+            {
+                return time >= Time && time <= EndTime;
+            }
+        }
+
         private readonly ITestimonyQueryService _testimonyQuery;
 
         private const int TimeToleranceMinutes = 10;
@@ -83,7 +99,7 @@ namespace DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors
             {
                 foreach (var evidenceTime in evidenceTimes)
                 {
-                    if (AreTimesConflicting(testimonyTime.Time, evidenceTime.Time))
+                    if (AreTimesConflicting(testimonyTime, evidenceTime))
                     {
                         return await CreateContradictionResultAsync(
                             query.QueryId,
@@ -123,7 +139,7 @@ namespace DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors
             {
                 foreach (var time2 in times2)
                 {
-                    if (AreTimesConflicting(time1.Time, time2.Time))
+                    if (AreTimesConflicting(time1, time2))
                     {
                         return CreateEvidenceContradictionResult(
                             query.QueryId,
@@ -169,27 +185,24 @@ namespace DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors
         {
             var times = new List<TimeInfo>();
 
+            bool hasStartTime = testimony.Metadata.TryGetValue("claimed_time_start", out var startTimeObj);
+            bool hasEndTime = testimony.Metadata.TryGetValue("claimed_time_end", out var endTimeObj);
+
+            if (hasStartTime && hasEndTime)
+            {
+                var startTime = ParseTimeString(startTimeObj?.ToString() ?? "", "claimed_time_start");
+                var endTime = ParseTimeString(endTimeObj?.ToString() ?? "", "claimed_time_end");
+
+                if (startTime != null && endTime != null)
+                {
+                    times.Add(new TimeRange(startTime.Time, endTime.Time, "claimed_time_range", testimony.CurrentText));
+                    return times.ToArray();
+                }
+            }
+
             if (testimony.Metadata.TryGetValue("claimed_time", out var claimedTime))
             {
                 var time = ParseTimeString(claimedTime?.ToString() ?? "", "claimed_time");
-                if (time != null)
-                {
-                    times.Add(time);
-                }
-            }
-
-            if (testimony.Metadata.TryGetValue("claimed_time_start", out var startTime))
-            {
-                var time = ParseTimeString(startTime?.ToString() ?? "", "claimed_time_start");
-                if (time != null)
-                {
-                    times.Add(time);
-                }
-            }
-
-            if (testimony.Metadata.TryGetValue("claimed_time_end", out var endTime))
-            {
-                var time = ParseTimeString(endTime?.ToString() ?? "", "claimed_time_end");
                 if (time != null)
                 {
                     times.Add(time);
@@ -302,9 +315,14 @@ namespace DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors
             }
         }
 
-        private bool AreTimesConflicting(TimeSpan time1, TimeSpan time2)
+        private bool AreTimesConflicting(TimeInfo testimonyTime, TimeInfo evidenceTime)
         {
-            var difference = Math.Abs((time1 - time2).TotalMinutes);
+            if (testimonyTime is TimeRange range)
+            {
+                return !range.ContainsTime(evidenceTime.Time);
+            }
+
+            var difference = Math.Abs((testimonyTime.Time - evidenceTime.Time).TotalMinutes);
             return difference > TimeToleranceMinutes;
         }
 
