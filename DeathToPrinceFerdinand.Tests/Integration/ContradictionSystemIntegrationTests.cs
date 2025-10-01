@@ -208,6 +208,25 @@ namespace DeathToPrinceFerdinand.Tests.Integration
             Assert.True(isResolved);
         }
 
+        [Fact]
+        public async Task DetectContradiction_AssassinIdentityAlias_ShouldFindContradiction()
+        {
+            var service = _serviceProvider.GetRequiredService<IContradictionService>();
+            var factory = _serviceProvider.GetRequiredService<IContradictionQueryFactory>();
+
+            var query = factory.CreateEvidenceVsEvidence(
+                "ev_tickets_001",
+                "ev_documents_002",
+                ContradictionType.Identity);
+
+            var result = await service.CheckContradictionAsync(query);
+
+            Assert.True(result.IsContradiction, "Should detect identity contradiction between ticket and permit names");
+            Assert.Equal(ContradictionType.Identity, result.Type);
+            Assert.Contains("N. Petrovic", result.Description);
+            Assert.Contains("Marko Jovanović", result.Description);
+        }
+
         public void Dispose()
         {
             _serviceProvider?.Dispose();
