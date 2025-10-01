@@ -1,9 +1,5 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
+using Xunit.Abstractions;
 using DeathToPrinceFerdinand.scripts.Core.Contradictions;
 using DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors;
 using DeathToPrinceFerdinand.scripts.Core.DependencyInjection;
@@ -15,9 +11,12 @@ namespace DeathToPrinceFerdinand.Tests.Integration
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly string _testDataPath;
+        private readonly ITestOutputHelper _output;
 
-        public ContradictionSystemIntegrationTests()
+        public ContradictionSystemIntegrationTests(ITestOutputHelper output)
         {
+            _output = output;
+
             _testDataPath = Path.Combine(Directory.GetCurrentDirectory(), "TestData");
 
             if (!Directory.Exists(_testDataPath))
@@ -119,19 +118,19 @@ namespace DeathToPrinceFerdinand.Tests.Integration
             Assert.Equal(ContradictionType.Timeline, result.Type);
         }
 
-        /*[Fact]
+        [Fact]
         public async Task DetectContradiction_AssassinCafeAlibi_ShouldFindContradiction()
         {
             var service = _serviceProvider.GetRequiredService<IContradictionService>();
             var factory = _serviceProvider.GetRequiredService<IContradictionQueryFactory>();
 
-            var query = factory.CreateTestimonyVsEvidence("ts_assassin_001", "ev_photos_001", ContradictionType.Timeline);
+            var query = factory.CreateTestimonyVsEvidence("ts_assassin_001", "ev_photos_001", ContradictionType.Location);
 
             var result = await service.CheckContradictionAsync(query);
 
             Assert.True(result.IsContradiction, "Should detect contradiction between cafe alibi and North Gate photo");
-            Assert.Equal(ContradictionType.Timeline, result.Type);
-        }*/
+            Assert.Equal(ContradictionType.Location, result.Type);
+        }
 
         [Fact]
         public async Task QueryService_FindBySuspect_ShouldReturnAssassinTestimony()
