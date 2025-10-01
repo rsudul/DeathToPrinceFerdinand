@@ -241,5 +241,185 @@ namespace DeathToPrinceFerdinand.Tests.Unit
             Assert.False(result.IsContradiction);
             Assert.Contains("not found", result.Description);
         }
+
+        [Fact]
+        public async Task DetectAsync_TimeRange_EvidenceWithinRange_ShouldNotDetectContradiction()
+        {
+            var testimony = new TestimonyStatement
+            {
+                Id = "ts_001",
+                SuspectId = "su_test",
+                OriginalText = "From noon until one I was at the cafe.",
+                Metadata = new Dictionary<string, object>
+                {
+                    { "claimed_time_start", "12:00" },
+                    { "claimed_time_end", "13:00" }
+                }
+            };
+
+            var evidence = new Evidence
+            {
+                Id = "ev_001",
+                Category = "photos",
+                Title = "photo",
+                Content = new Dictionary<string, object>
+                {
+                    { "time", "12:05" }
+                }
+            };
+
+            _mockContext.Setup(c => c.GetTestimony("ts_001")).Returns(testimony);
+            _mockContext.Setup(c => c.GetEvidence("ev_001")).Returns(evidence);
+
+            var query = new TestimonyVsEvidenceQuery("ts_001", "ev_001", ContradictionType.Timeline);
+
+            var result = await _detector.DetectAsync(query, _mockContext.Object);
+
+            Assert.False(result.IsContradiction, "Evidence time within range should not be a contradiction.");
+        }
+
+        [Fact]
+        public async Task DetectAsync_TimeRange_EvidenceOutsideRange_ShouldDetectContradiction()
+        {
+            var testimony = new TestimonyStatement
+            {
+                Id = "ts_001",
+                SuspectId = "su_test",
+                OriginalText = "From noon until one I was at the cafe.",
+                Metadata = new Dictionary<string, object>
+                {
+                    { "claimed_time_start", "12:00" },
+                    { "claimed_time_end", "13:00" }
+                }
+            };
+
+            var evidence = new Evidence
+            {
+                Id = "ev_001",
+                Category = "tickets",
+                Title = "Receipt",
+                Content = new Dictionary<string, object>
+                {
+                    { "time", "14:00" }
+                }
+            };
+
+            _mockContext.Setup(c => c.GetTestimony("ts_001")).Returns(testimony);
+            _mockContext.Setup(c => c.GetEvidence("ev_001")).Returns(evidence);
+
+            var query = new TestimonyVsEvidenceQuery("ts_001", "ev_001", ContradictionType.Timeline);
+
+            var result = await _detector.DetectAsync(query, _mockContext.Object);
+
+            Assert.True(result.IsContradiction, "Evidence time outside range should be a contradiction.");
+        }
+
+        [Fact]
+        public async Task DetectAsync_TimeRange_EvidenceAtStartBoundary_ShouldNotDetectContradiction()
+        {
+            var testimony = new TestimonyStatement
+            {
+                Id = "Ts_001",
+                SuspectId = "su_test",
+                OriginalText = "From noon until one.",
+                Metadata = new Dictionary<string, object>
+                {
+                    { "claimed_time_start", "12:00" },
+                    { "claimed_time_end", "13:00" }
+                }
+            };
+
+            var evidence = new Evidence
+            {
+                Id = "ev_001",
+                Category = "documents",
+                Title = "Log",
+                Content = new Dictionary<string, object>
+                {
+                    { "time", "12:00" }
+                }
+            };
+
+            _mockContext.Setup(c => c.GetTestimony("ts_001")).Returns(testimony);
+            _mockContext.Setup(c => c.GetEvidence("ev_001")).Returns(evidence);
+
+            var query = new TestimonyVsEvidenceQuery("ts_001", "ev_001", ContradictionType.Timeline);
+
+            var result = await _detector.DetectAsync(query, _mockContext.Object);
+
+            Assert.False(result.IsContradiction, "Evidence at start boundary should not be a contradiction.");
+        }
+
+        [Fact]
+        public async Task DetectAsync_TimeRange_EvidenceAtEndBoundary_ShouldNotDetectContradiction()
+        {
+            var testimony = new TestimonyStatement
+            {
+                Id = "ts_001",
+                SuspectId = "su_test",
+                OriginalText = "From noon until one.",
+                Metadata = new Dictionary<string, object>
+                {
+                    { "claimed_time_start", "12:00" },
+                    { "claimed_time_end", "13:00" }
+                }
+            };
+
+            var evidence = new Evidence
+            {
+                Id = "ev_001",
+                Category = "documents",
+                Title = "Log",
+                Content = new Dictionary<string, object>
+                {
+                    { "time", "13:00" }
+                }
+            };
+
+            _mockContext.Setup(c => c.GetTestimony("ts_001")).Returns(testimony);
+            _mockContext.Setup(c => c.GetEvidence("ev_001")).Returns(evidence);
+
+            var query = new TestimonyVsEvidenceQuery("ts_001", "ev_001", ContradictionType.Timeline);
+
+            var result = await _detector.DetectAsync(query, _mockContext.Object);
+
+            Assert.False(result.IsContradiction, "Evidence at end boundary should not be a contradiction.");
+        }
+
+        [Fact]
+        public async Task DetectAsync_TimeRange_EvidenceJustBeforeStart_ShouldDetectContradiction()
+        {
+            var testimony = new TestimonyStatement
+            {
+                Id = "ts_001",
+                SuspectId = "su_test",
+                OriginalText = "From noon until one.",
+                Metadata = new Dictionary<string, object>
+                {
+                    { "claimed_time_start", "12:00" },
+                    { "claimed_time_end", "13:00" }
+                }
+            };
+
+            var evidence = new Evidence
+            {
+                Id = "ev_001",
+                Category = "photos",
+                Title = "Photo",
+                Content = new Dictionary<string, object>
+                {
+                    { "time", "11:55" }
+                }
+            };
+
+            _mockContext.Setup(c => c.GetTestimony("ts_001")).Returns(testimony);
+            _mockContext.Setup(c => c.GetEvidence("ev_001")).Returns(evidence);
+
+            var query = new TestimonyVsEvidenceQuery("ts_001", "ev_001", ContradictionType.Timeline);
+
+            var result = await _detector.DetectAsync(query, _mockContext.Object);
+
+            Assert.True(result.IsContradiction, "Evidence before range start should be a contradiction.");
+        }
     }
 }
