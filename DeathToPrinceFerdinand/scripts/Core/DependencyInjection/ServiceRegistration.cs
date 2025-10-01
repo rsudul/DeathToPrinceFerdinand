@@ -23,6 +23,7 @@ namespace DeathToPrinceFerdinand.scripts.Core.DependencyInjection
             services.AddScoped<IContradictionQueryFactory, ContradictionQueryFactory>();
 
             services.AddScoped<IContradictionDetector, TimelineContradictionsDetector>();
+            services.AddScoped<IContradictionDetector, LocationContradictionDetector>();
 
             return services;
         }
