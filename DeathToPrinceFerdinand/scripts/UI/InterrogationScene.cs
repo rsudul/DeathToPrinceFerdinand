@@ -1,0 +1,404 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Godot;
+using DeathToPrinceFerdinand.scripts.Core.Contradictions;
+using DeathToPrinceFerdinand.scripts.Core.Models;
+
+namespace DeathToPrinceFerdinand.scripts.UI
+{
+    public partial class InterrogationScene : Control
+    {
+        private Label _headerLabel;
+        private VBoxContainer _evidenceList;
+        private VBoxContainer _testimonyList;
+        private VBoxContainer _contradictionsList;
+        private Button _checkContradictionButton;
+        private RichTextLabel _feedbackLabel;
+
+        private DossierState _currentDossier;
+        private List<Evidence> _availableEvidence = new();
+        private Evidence _selectedEvidence;
+        private TestimonyStatement _selectedTestimony;
+
+        private IContradictionService _contradictionService;
+        private IContradictionQueryFactory _queryFactory;
+
+        public override void _Ready()
+        {
+            BuildUI();
+
+            LoadTestData();
+        }
+
+        private void BuildUI()
+        {
+            var mainContainer = new MarginContainer();
+            mainContainer.SetAnchorsPreset(LayoutPreset.FullRect);
+            mainContainer.AddThemeConstantOverride("margin_left", 20);
+            mainContainer.AddThemeConstantOverride("margin_top", 20);
+            mainContainer.AddThemeConstantOverride("margin_right", 20);
+            mainContainer.AddThemeConstantOverride("margin_bottom", 20);
+            AddChild(mainContainer);
+
+            var vbox = new VBoxContainer();
+            vbox.AddThemeConstantOverride("separation", 10);
+            mainContainer.AddChild(vbox);
+
+            _headerLabel = new Label();
+            _headerLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
+            _headerLabel.AddThemeFontSizeOverride("font_size", 24);
+            _headerLabel.Text = "Investigation: [Loading...]";
+            vbox.AddChild(_headerLabel);
+
+            var separator = new HSeparator();
+            vbox.AddChild(separator);
+
+            var hbox = new HBoxContainer();
+            hbox.AddThemeConstantOverride("separation", 15);
+            hbox.SizeFlagsVertical = SizeFlags.ExpandFill;
+            vbox.AddChild(hbox);
+
+            var leftPanel = CreateEvidencePanel();
+            leftPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            leftPanel.CustomMinimumSize = new Vector2(300, 0);
+            hbox.AddChild(leftPanel);
+
+            var rightPanel = CreateTestimonyPanel();
+            rightPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            rightPanel.CustomMinimumSize = new Vector2(400, 0);
+            hbox.AddChild(rightPanel);
+        }
+
+        private PanelContainer CreateEvidencePanel()
+        {
+            var panel = new PanelContainer();
+
+            var vbox = new VBoxContainer();
+            vbox.AddThemeConstantOverride("separation", 8);
+            panel.AddChild(vbox);
+
+            var header = new Label();
+            header.Text = "EVIDENCE DRAWER";
+            header.AddThemeFontSizeOverride("font_size", 18);
+            header.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            vbox.AddChild(header);
+
+            var separator = new HSeparator();
+            vbox.AddChild(separator);
+
+            var scrollContainer = new ScrollContainer();
+            scrollContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
+            vbox.AddChild(scrollContainer);
+
+            _evidenceList = new VBoxContainer();
+            _evidenceList.AddThemeConstantOverride("separation", 5);
+            scrollContainer.AddChild(_evidenceList);
+
+            return panel;
+        }
+
+        private PanelContainer CreateTestimonyPanel()
+        {
+            var panel = new PanelContainer();
+
+            var vbox = new VBoxContainer();
+            vbox.AddThemeConstantOverride("separation", 8);
+            panel.AddChild(vbox);
+
+            var infoLabel = new Label();
+            infoLabel.Text = "SUSPECT DOSSIER";
+            infoLabel.AddThemeFontSizeOverride("font_size", 18);
+            infoLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            vbox.AddChild(infoLabel);
+
+            var separator1 = new HSeparator();
+            vbox.AddChild(separator1);
+
+            var testimonyHeader = new Label();
+            testimonyHeader.Text = "TESTIMONY";
+            testimonyHeader.AddThemeFontSizeOverride("font_size", 16);
+            testimonyHeader.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            vbox.AddChild(testimonyHeader);
+
+            var scrollContainer = new ScrollContainer();
+            scrollContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
+            scrollContainer.CustomMinimumSize = new Vector2(0, 200);
+            vbox.AddChild(scrollContainer);
+
+            _testimonyList = new VBoxContainer();
+            _testimonyList.AddThemeConstantOverride("separation", 5);
+            scrollContainer.AddChild(_testimonyList);
+
+            var separator2 = new HSeparator();
+            vbox.AddChild(separator2);
+
+            var contradictionsHeader = new Label();
+            contradictionsHeader.Text = "CONTRADICTIONS";
+            contradictionsHeader.AddThemeFontSizeOverride("font_size", 16);
+            contradictionsHeader.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            vbox.AddChild(contradictionsHeader);
+
+            _contradictionsList = new VBoxContainer();
+            _contradictionsList.AddThemeConstantOverride("separation", 5);
+            vbox.AddChild(_contradictionsList);
+
+            var separator3 = new HSeparator();
+            vbox.AddChild(separator3);
+
+            _checkContradictionButton = new Button();
+            _checkContradictionButton.Text = "Check for Contradiction";
+            _checkContradictionButton.Disabled = true;
+            _checkContradictionButton.Pressed += OnCheckContradictionPressed;
+            vbox.AddChild(_checkContradictionButton);
+
+            _feedbackLabel = new RichTextLabel();
+            _feedbackLabel.BbcodeEnabled = true;
+            _feedbackLabel.FitContent = true;
+            _feedbackLabel.ScrollActive = false;
+            _feedbackLabel.CustomMinimumSize = new Vector2(0, 60);
+            vbox.AddChild(_feedbackLabel);
+
+            return panel;
+        }
+
+        private void LoadTestData()
+        {
+            _currentDossier = new DossierState
+            {
+                SuspectId = "su_assassin_marko",
+                Name = "Marko Jovanović",
+                Alias = "N. Petrovic",
+                Codename = "The Assassin"
+            };
+
+            _currentDossier.Testimony.Add(new TestimonyStatement
+            {
+                Id = "ts_assassin_001",
+                SuspectId = "su_assassin_marko",
+                OriginalText = "From noon until one I was at Cafe Lenestra, alone.",
+                Timestamp = DateTime.Parse("1914-06-15T09:30:00"),
+                Metadata = new Dictionary<string, object>
+                {
+                    { "topic", "alibi" },
+                    { "claimed_location", "Cafe Lenestra" },
+                    { "claimed_time_start", "12:00" },
+                    { "claimed_time_end", "13:00" }
+                }
+            });
+
+            _currentDossier.Testimony.Add(new TestimonyStatement
+            {
+                Id = "ts_assassin_002",
+                SuspectId = "su_assassin_marko",
+                OriginalText = "My train got in around 1 PM. I was late.",
+                Timestamp = DateTime.Parse("1914-06-15T09:35:00"),
+                Metadata = new Dictionary<string, object>
+                {
+                    { "topic", "arrival" },
+                    { "claimed_time", "13:00" }
+                }
+            });
+
+            _availableEvidence.Add(new Evidence
+            {
+                Id = "ev_tickets_001",
+                Category = "tickets",
+                Title = "Train Ticket - Dravik to Varnograd",
+                Content = new Dictionary<string, object>
+                {
+                    { "passenger_name", "N. Petrovic" },
+                    { "departure", "Dravik Station" },
+                    { "destination", "Varnograd" },
+                    { "departure_time", "10:00" },
+                    { "arrival_time", "11:50" },
+                    { "date", "1914-06-14" }
+                }
+            });
+
+            _availableEvidence.Add(new Evidence
+            {
+                Id = "ev_photos_001",
+                Category = "photos",
+                Title = "Surveillance Photo - North Gate",
+                Content = new Dictionary<string, object>
+                {
+                    { "location", "North Gate" },
+                    { "time", "12:05" },
+                    { "date", "1914-06-14" }
+                }
+            });
+
+            PopulateUI();
+        }
+
+        private void PopulateUI()
+        {
+            _headerLabel.Text = $"Investigation: {_currentDossier.FullDisplayName}";
+
+            foreach (var evidence in _availableEvidence)
+            {
+                var button = new Button();
+                button.Text = $"□ {evidence.Title}";
+                button.ToggleMode = true;
+                button.Alignment = HorizontalAlignment.Left;
+
+                var evidenceRef = evidence;
+                button.Toggled += (pressed) => OnEvidenceSelected(evidenceRef, pressed);
+
+                _evidenceList.AddChild(button);
+            }
+
+            foreach (var testimony in _currentDossier.Testimony)
+            {
+                var button = new Button();
+                button.Text = $"• {testimony.CurrentText}";
+                button.ToggleMode = true;
+                button.Alignment = HorizontalAlignment.Left;
+                button.CustomMinimumSize = new Vector2(0, 60);
+
+                var testimonyRef = testimony;
+                button.Toggled += (pressed) => OnTestimonySelected(testimonyRef, pressed);
+
+                _testimonyList.AddChild(button);
+            }
+
+            UpdateContradictionsList();
+        }
+
+        private void OnEvidenceSelected(Evidence evidence, bool pressed)
+        {
+            foreach (Button button in _evidenceList.GetChildren())
+            {
+                if (button.ButtonPressed && button.Text != $"□ {evidence.Title}")
+                {
+                    button.ButtonPressed = false;
+                }
+            }
+
+            _selectedEvidence = pressed ? evidence : null;
+            UpdateCheckButtonState();
+
+            if (pressed)
+            {
+                _feedbackLabel.Text = $"[color=gray]Selected: {evidence.Title}[/color]";
+            }
+        }
+
+        private void OnTestimonySelected(TestimonyStatement testimony, bool pressed)
+        {
+            foreach (Button button in _testimonyList.GetChildren())
+            {
+                if (button.ButtonPressed && button.Text != $"• {testimony.CurrentText}")
+                {
+                    button.ButtonPressed = false;
+                }
+            }
+
+            _selectedTestimony = pressed ? testimony : null;
+            UpdateCheckButtonState();
+
+            if (pressed)
+            {
+                _feedbackLabel.Text = $"[color=gray]Selected testimony: {testimony.CurrentText.Substring(0, Math.Min(50, testimony.CurrentText.Length))}...[/color]";
+            }
+        }
+
+        private void UpdateCheckButtonState()
+        {
+            _checkContradictionButton.Disabled = _selectedEvidence == null || _selectedTestimony == null;
+        }
+
+        private async void OnCheckContradictionPressed()
+        {
+            if (_selectedEvidence == null || _selectedTestimony == null)
+            {
+                return;
+            }
+
+            _feedbackLabel.Text = "[color=yellow]Checking for contradictions...[/color]";
+            _checkContradictionButton.Disabled = true;
+
+            await System.Threading.Tasks.Task.Delay(500);
+
+            bool foundContradiction = CheckPlaceholderContradiction();
+
+            if (foundContradiction)
+            {
+                _feedbackLabel.Text = "[color=red][b]⚠ CONTRADICTION DETECTED![/b][/color]\n" +
+                    $"Testimony conflicts with evidence.";
+
+                var contradictionLabel = new Label();
+                contradictionLabel.Text = $"✓ {_selectedEvidence.Title} vs Testimony";
+                contradictionLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.6f, 0.6f));
+                _contradictionsList.AddChild(contradictionLabel);
+            }
+            else
+            {
+                _feedbackLabel.Text = "[color=green]No contradiction found. These items appear consistent.[/color]";
+            }
+
+            ClearSelections();
+        }
+
+        private bool CheckPlaceholderContradiction()
+        {
+            if (_selectedEvidence.Content.TryGetValue("time", out var evidenceTime) ||
+                _selectedEvidence.Content.TryGetValue("arrival_time", out evidenceTime))
+            {
+                if (_selectedTestimony.Metadata.TryGetValue("claimed_time", out var claimedTime) ||
+                    _selectedTestimony.Metadata.TryGetValue("claimed_time_start", out claimedTime))
+                {
+                    return evidenceTime?.ToString() != claimedTime?.ToString();
+                }
+            }
+
+            return false;
+        }
+
+        private void ClearSelections()
+        {
+            _selectedEvidence = null;
+            _selectedTestimony = null;
+
+            foreach (Button button in _evidenceList.GetChildren())
+            {
+                button.ButtonPressed = false;
+            }
+
+            foreach (Button button in _testimonyList.GetChildren())
+            {
+                button.ButtonPressed = false;
+            }
+
+            UpdateCheckButtonState();
+        }
+
+        private void UpdateContradictionsList()
+        {
+            foreach (var child in _contradictionsList.GetChildren())
+            {
+                child.QueueFree();
+            }
+
+            foreach (var contradiction in _currentDossier.Contradictions)
+            {
+                var label = new Label();
+                label.Text = $"• {contradiction.Type}: {contradiction.Description}";
+                label.AddThemeColorOverride("font_color",
+                    contradiction.Resolution.HasAnyResolution
+                    ? new Color(0.6f, 1.0f, 0.6f)
+                    : new Color(1.0f, 0.6f, 0.6f));
+                _contradictionsList.AddChild(label);
+            }
+
+            if (_currentDossier.Contradictions.Count == 0)
+            {
+                var label = new Label();
+                label.Text = "No contradictions detected yet.";
+                label.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.6f));
+                _contradictionsList.AddChild(label);
+            }
+        }
+    }
+}

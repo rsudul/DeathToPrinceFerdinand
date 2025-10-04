@@ -10,11 +10,12 @@ config_version=5
 
 [application]
 
-config/name="DeathToPrinceFerdinand!"
-run/main_scene="uid://qjxj1whp6ifi"
+config/name="DeathToPrinceFerdinand"
+config/version="0.1"
+run/main_scene="uid://n0mibau8rnat"
 config/features=PackedStringArray("4.5", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
 [dotnet]
 
-project/assembly_name="DeathToPrinceFerdinand!"
+project/assembly_name="DeathToPrinceFerdinand"
