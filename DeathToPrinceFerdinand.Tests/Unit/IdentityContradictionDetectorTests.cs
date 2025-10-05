@@ -69,12 +69,20 @@ namespace DeathToPrinceFerdinand.Tests.Unit
                 Title = "Work Permit",
                 Content = new Dictionary<string, object>
                 {
-                    { "full_name", "Marko Jovanovic" }
+                    { "full_name", "N. Petrovic" }
                 }
+            };
+
+            var dossier = new DossierState
+            {
+                SuspectId = "su_assassin_marko",
+                Name = "Marko Jovanović",
+                Alias = "N. Petrovic"
             };
 
             _mockContext.Setup(c => c.GetTestimony("ts_001")).Returns(testimony);
             _mockContext.Setup(c => c.GetEvidence("ev_001")).Returns(evidence);
+            _mockContext.Setup(c => c.GetDossier("su_assassin_marko")).Returns(dossier);
 
             var query = new TestimonyVsEvidenceQuery("ts_001", "ev_001", ContradictionType.Identity);
 
@@ -83,6 +91,7 @@ namespace DeathToPrinceFerdinand.Tests.Unit
             Assert.True(result.IsContradiction);
             Assert.Equal(ContradictionType.Identity, result.Type);
             Assert.Contains("su_assassin_marko", result.AffectedSuspects);
+            Assert.Contains("denies", result.Description, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -411,7 +420,7 @@ namespace DeathToPrinceFerdinand.Tests.Unit
                 OriginalText = "That's not me in the photo.",
                 Metadata = new Dictionary<string, object>
                 {
-                    { "denied_identity", "Viktor" }
+                    { "denied_identity", "N. Petrovic" }
                 }
             };
 
@@ -422,12 +431,20 @@ namespace DeathToPrinceFerdinand.Tests.Unit
                 Title = "Document",
                 Content = new Dictionary<string, object>
                 {
-                    { "name", "Marko" }
+                    { "name", "N. Petrovic" }
                 }
+            };
+
+            var dossier = new DossierState
+            {
+                SuspectId = "su_test",
+                Name = "Marko Jovanović",
+                Alias = "N. Petrovic"
             };
 
             _mockContext.Setup(c => c.GetTestimony("ts_001")).Returns(testimony);
             _mockContext.Setup(c => c.GetEvidence("ev_001")).Returns(evidence);
+            _mockContext.Setup(c => c.GetDossier("su_test")).Returns(dossier);
 
             var query = new TestimonyVsEvidenceQuery("ts_001", "ev_001", ContradictionType.Identity);
 
@@ -435,6 +452,52 @@ namespace DeathToPrinceFerdinand.Tests.Unit
 
             Assert.True(result.IsContradiction);
             Assert.Contains("denies", result.Description.ToLower());
+        }
+
+        [Fact]
+        public async Task DetectAsync_ShouldDetectContradiction_WhenSuspectDeniesNameThatMatchesEvidence()
+        {
+            var testimony = new TestimonyStatement
+            {
+                Id = "ts_denial",
+                SuspectId = "su_assassin_marko",
+                OriginalText = "That ticket isn't mine. Must've been planted.",
+                Metadata = new Dictionary<string, object>
+                {
+                    { "denied_identity", "N. Petrovic" }
+                }
+            };
+
+            var evidence = new Evidence
+            {
+                Id = "ev_ticket",
+                Category = "tickets",
+                Title = "Train Ticket",
+                Content = new Dictionary<string, object>
+                {
+                    { "passenger_name", "N. Petrovic" }
+                }
+            };
+
+            var dossier = new DossierState
+            {
+                SuspectId = "su_assassin_marko",
+                Name = "Marko Jovanović",
+                Alias = "N. Petrovic"
+            };
+
+            _mockContext.Setup(c => c.GetTestimony("ts_denial")).Returns(testimony);
+            _mockContext.Setup(c => c.GetEvidence("ev_ticket")).Returns(evidence);
+            _mockContext.Setup(c => c.GetDossier("su_assassin_marko")).Returns(dossier);
+
+            var query = new TestimonyVsEvidenceQuery("ts_denial", "ev_ticket", ContradictionType.Identity);
+
+            var result = await _detector.DetectAsync(query, _mockContext.Object);
+
+            Assert.True(result.IsContradiction, "Denying a name that matches evidence should be a contradiction");
+            Assert.Equal(ContradictionType.Identity, result.Type);
+            Assert.Contains("denies", result.Description, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("N. Petrovic", result.Description);
         }
     }
 }

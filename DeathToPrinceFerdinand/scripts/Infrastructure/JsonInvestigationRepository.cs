@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Godot;
 using DeathToPrinceFerdinand.scripts.Core.Contradictions;
 using DeathToPrinceFerdinand.scripts.Core.Models;
 
@@ -28,11 +28,6 @@ namespace DeathToPrinceFerdinand.scripts.Infrastructure
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 WriteIndented = true
             };
-
-            if (!Directory.Exists(_dataPath))
-            {
-                Directory.CreateDirectory(_dataPath);
-            }
         }
 
         private async Task EnsureLoadedAsync()
@@ -42,42 +37,101 @@ namespace DeathToPrinceFerdinand.scripts.Infrastructure
                 return;
             }
 
-            await LoadAllDataAsync();
+            LoadAllData();
             _isLoaded = true;
+
+            await Task.CompletedTask;
         }
 
-        private async Task LoadAllDataAsync()
+        private void LoadAllData()
         {
-            var evidencePath = Path.Combine(_dataPath, "evidence.json");
-            if (File.Exists(evidencePath))
-            {
-                var evidenceJson = await File.ReadAllTextAsync(evidencePath);
-                var evidenceData = JsonSerializer.Deserialize<List<Evidence>>(evidenceJson, _jsonOptions);
-                _evidenceCache = evidenceData ?? new List<Evidence>();
-            }
+            LoadAllEvidence();
+            LoadAllTestimonies();
+            LoadAllDossiers();
+        }
 
-            var testimonyPath = Path.Combine(_dataPath, "testimony.json");
-            if (File.Exists(testimonyPath))
-            {
-                var testimonyJson = await File.ReadAllTextAsync(testimonyPath);
-                var testimonyData = JsonSerializer.Deserialize<List<TestimonyStatement>>(testimonyJson, _jsonOptions);
-                _testimonyCache = testimonyData ?? new List<TestimonyStatement>();
-            }
+        private void LoadAllEvidence()
+        {
+            var evidencePath = $"{_dataPath}/evidence.json";
 
-            var dossiersPath = Path.Combine(_dataPath, "dossiers.json");
-            if (File.Exists(dossiersPath))
+            if (FileAccess.FileExists(evidencePath))
             {
-                var dossiersJson = await File.ReadAllTextAsync(dossiersPath);
-                var dossiersData = JsonSerializer.Deserialize<List<DossierState>>(dossiersJson, _jsonOptions);
-                _dossierCache = dossiersData ?? new List<DossierState>();
-            }
+                var file = FileAccess.Open(evidencePath, FileAccess.ModeFlags.Read);
+                if (file != null)
+                {
+                    var evidenceJson = file.GetAsText();
+                    file.Close();
 
-            var contradictionsPath = Path.Combine(_dataPath, "contradictions.json");
-            if (File.Exists(contradictionsPath))
+                    var evidenceData = JsonSerializer.Deserialize<List<Evidence>>(evidenceJson, _jsonOptions);
+                    _evidenceCache = evidenceData ?? new List<Evidence>();
+                }
+                else
+                {
+                    GD.PrintErr($"X Failed to open evidence file.");
+                    _evidenceCache = new List<Evidence>();
+                }
+            }
+            else
             {
-                var contradictionsJson = await File.ReadAllTextAsync(contradictionsPath);
-                var contradictionsData = JsonSerializer.Deserialize<List<ContradictionResult>>(contradictionsJson, _jsonOptions);
-                _contradictionCache = contradictionsData ?? new List<ContradictionResult>();
+                GD.PrintErr($"X Evidence file does not exist: {evidencePath}");
+                _evidenceCache = new List<Evidence>();
+            }
+        }
+
+        private void LoadAllTestimonies()
+        {
+            var testimonyPath = $"{_dataPath}/testimony.json";
+            GD.Print($"[Repo] Loading: {testimonyPath} (abs: {ProjectSettings.GlobalizePath(testimonyPath)}");
+
+            if (FileAccess.FileExists(testimonyPath))
+            {
+                var file = FileAccess.Open(testimonyPath, FileAccess.ModeFlags.Read);
+                if (file != null)
+                {
+                    var testimonyJson = file.GetAsText();
+                    file.Close();
+
+                    var testimonyData = JsonSerializer.Deserialize<List<TestimonyStatement>>(testimonyJson, _jsonOptions);
+                    _testimonyCache = testimonyData ?? new List<TestimonyStatement>();
+                }
+                else
+                {
+                    GD.PrintErr($"X Failed to open testimony file");
+                    _testimonyCache = new List<TestimonyStatement>();
+                }
+            }
+            else
+            {
+                GD.PrintErr($"X Testimony file does not exist: {testimonyPath}");
+                _testimonyCache = new List<TestimonyStatement>();
+            }
+        }
+
+        private void LoadAllDossiers()
+        {
+            var dossiersPath = $"{_dataPath}/dossiers.json";
+
+            if (FileAccess.FileExists(dossiersPath))
+            {
+                var file = FileAccess.Open(dossiersPath, FileAccess.ModeFlags.Read);
+                if (file != null)
+                {
+                    var dossiersJson = file.GetAsText();
+                    file.Close();
+
+                    var dossiersData = JsonSerializer.Deserialize<List<DossierState>>(dossiersJson, _jsonOptions);
+                    _dossierCache = dossiersData ?? new List<DossierState>();
+                }
+                else
+                {
+                    GD.PrintErr($"X Failed to open dossiers file");
+                    _dossierCache = new List<DossierState>();
+                }
+            }
+            else
+            {
+                GD.PrintErr($"X Dossiers file does not exist: {dossiersPath}");
+                _dossierCache = new List<DossierState>();
             }
         }
 
@@ -211,32 +265,24 @@ namespace DeathToPrinceFerdinand.scripts.Infrastructure
             await SaveContradictionsFileAsync();
         }
 
-        private async Task SaveEvidenceFileAsync()
+        private Task SaveEvidenceFileAsync()
         {
-            var evidencePath = Path.Combine(_dataPath, "evidence.json");
-            var json = JsonSerializer.Serialize(_evidenceCache, _jsonOptions);
-            await File.WriteAllTextAsync(evidencePath, json);
+            return Task.CompletedTask;
         }
 
-        private async Task SaveTestimonyFileAsync()
+        private Task SaveTestimonyFileAsync()
         {
-            var testimonyPath = Path.Combine(_dataPath, "testimony.json");
-            var json = JsonSerializer.Serialize(_testimonyCache, _jsonOptions);
-            await File.WriteAllTextAsync(testimonyPath, json);
+            return Task.CompletedTask;
         }
 
-        private async Task SaveDossiersFileAsync()
+        private Task SaveDossiersFileAsync()
         {
-            var dossiersPath = Path.Combine(_dataPath, "dossiers.json");
-            var json = JsonSerializer.Serialize(_dossierCache, _jsonOptions);
-            await File.WriteAllTextAsync(dossiersPath, json);
+            return Task.CompletedTask;
         }
 
-        private async Task SaveContradictionsFileAsync()
+        private Task SaveContradictionsFileAsync()
         {
-            var contradictionsPath = Path.Combine(_dataPath, "contradictions.json");
-            var json = JsonSerializer.Serialize(_contradictionCache, _jsonOptions);
-            await File.WriteAllTextAsync(contradictionsPath, json);
+            return Task.CompletedTask;
         }
     }
 }

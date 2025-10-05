@@ -20,7 +20,8 @@
 	"timestamp": "1914-06-15T09:35:00",
 	"metadata": {
 	  "topic": "arrival",
-	  "claimed_time": "13:00"
+	  "claimed_time": "13:00",
+	  "claimed_location": "train_station"
 	}
   },
   {
@@ -31,7 +32,8 @@
 	"timestamp": "1914-06-15T09:40:00",
 	"metadata": {
 	  "topic": "ticket_denial",
-	  "evidence_reference": "ev_tickets_001"
+	  "evidence_reference": "ev_tickets_001",
+	  "denied_identity": "N. Petrovic"
 	}
   },
   {
