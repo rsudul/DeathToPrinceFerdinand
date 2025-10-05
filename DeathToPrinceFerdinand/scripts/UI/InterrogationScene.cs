@@ -4,6 +4,7 @@ using System.Linq;
 using Godot;
 using DeathToPrinceFerdinand.scripts.Core.Contradictions;
 using DeathToPrinceFerdinand.scripts.Core.Models;
+using DeathToPrinceFerdinand.scripts.Infrastructure;
 
 namespace DeathToPrinceFerdinand.scripts.UI
 {
@@ -23,12 +24,21 @@ namespace DeathToPrinceFerdinand.scripts.UI
 
         private IContradictionService _contradictionService;
         private IContradictionQueryFactory _queryFactory;
+        private IInvestigationContext _context;
 
         public override void _Ready()
         {
-            BuildUI();
+            if (!GameServices.IsInitialized)
+            {
+                GameServices.Initialize($"res://data/");
+            }
 
-            LoadTestData();
+            _contradictionService = GameServices.GetService<IContradictionService>();
+            _queryFactory = GameServices.GetService<IContradictionQueryFactory>();
+            _context = GameServices.GetService<IInvestigationContext>();
+
+            BuildUI();
+            LoadRealData();
         }
 
         private void BuildUI()
@@ -162,72 +172,24 @@ namespace DeathToPrinceFerdinand.scripts.UI
             return panel;
         }
 
-        private void LoadTestData()
+        private void LoadRealData()
         {
-            _currentDossier = new DossierState
-            {
-                SuspectId = "su_assassin_marko",
-                Name = "Marko Jovanović",
-                Alias = "N. Petrovic",
-                Codename = "The Assassin"
-            };
+            _currentDossier = _context.GetDossier("su_assassin_marko");
 
-            _currentDossier.Testimony.Add(new TestimonyStatement
+            if (_currentDossier == null)
             {
-                Id = "ts_assassin_001",
-                SuspectId = "su_assassin_marko",
-                OriginalText = "From noon until one I was at Cafe Lenestra, alone.",
-                Timestamp = DateTime.Parse("1914-06-15T09:30:00"),
-                Metadata = new Dictionary<string, object>
-                {
-                    { "topic", "alibi" },
-                    { "claimed_location", "Cafe Lenestra" },
-                    { "claimed_time_start", "12:00" },
-                    { "claimed_time_end", "13:00" }
-                }
-            });
+                GD.PrintErr("Failed to load assassin dossier!");
+                return;
+            }
 
-            _currentDossier.Testimony.Add(new TestimonyStatement
-            {
-                Id = "ts_assassin_002",
-                SuspectId = "su_assassin_marko",
-                OriginalText = "My train got in around 1 PM. I was late.",
-                Timestamp = DateTime.Parse("1914-06-15T09:35:00"),
-                Metadata = new Dictionary<string, object>
-                {
-                    { "topic", "arrival" },
-                    { "claimed_time", "13:00" }
-                }
-            });
+            _availableEvidence = _currentDossier.LinkedEvidenceIds
+                .Select(id => _context.GetEvidence(id))
+                .Where(e => e != null)
+                .ToList();
 
-            _availableEvidence.Add(new Evidence
-            {
-                Id = "ev_tickets_001",
-                Category = "tickets",
-                Title = "Train Ticket - Dravik to Varnograd",
-                Content = new Dictionary<string, object>
-                {
-                    { "passenger_name", "N. Petrovic" },
-                    { "departure", "Dravik Station" },
-                    { "destination", "Varnograd" },
-                    { "departure_time", "10:00" },
-                    { "arrival_time", "11:50" },
-                    { "date", "1914-06-14" }
-                }
-            });
-
-            _availableEvidence.Add(new Evidence
-            {
-                Id = "ev_photos_001",
-                Category = "photos",
-                Title = "Surveillance Photo - North Gate",
-                Content = new Dictionary<string, object>
-                {
-                    { "location", "North Gate" },
-                    { "time", "12:05" },
-                    { "date", "1914-06-14" }
-                }
-            });
+            GD.Print($"Loaded dossier for {_currentDossier.FullDisplayName}");
+            GD.Print($"  - {_currentDossier.Testimony.Count} testimony statements");
+            GD.Print($"  - {_availableEvidence.Count} evidence items");
 
             PopulateUI();
         }
@@ -319,41 +281,73 @@ namespace DeathToPrinceFerdinand.scripts.UI
             _feedbackLabel.Text = "[color=yellow]Checking for contradictions...[/color]";
             _checkContradictionButton.Disabled = true;
 
-            await System.Threading.Tasks.Task.Delay(500);
-
-            bool foundContradiction = CheckPlaceholderContradiction();
-
-            if (foundContradiction)
+            try
             {
-                _feedbackLabel.Text = "[color=red][b]⚠ CONTRADICTION DETECTED![/b][/color]\n" +
-                    $"Testimony conflicts with evidence.";
+                var contradictionTypes = new[]
+                {
+                    ContradictionType.Timeline,
+                    ContradictionType.Location,
+                    ContradictionType.Identity
+                };
 
-                var contradictionLabel = new Label();
-                contradictionLabel.Text = $"✓ {_selectedEvidence.Title} vs Testimony";
-                contradictionLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.6f, 0.6f));
-                _contradictionsList.AddChild(contradictionLabel);
+                ContradictionResult foundContradiction = null;
+
+                foreach (var type in contradictionTypes)
+                {
+                    var query = _queryFactory.CreateTestimonyVsEvidence(
+                        _selectedTestimony.Id,
+                        _selectedEvidence.Id,
+                        type);
+
+                    var result = await _contradictionService.CheckContradictionAsync(query);
+
+                    if (result.IsContradiction)
+                    {
+                        foundContradiction = result;
+                        break;
+                    }
+                }
+
+                if (foundContradiction != null)
+                {
+                    DisplayContradictionFound(foundContradiction);
+                }
+                else
+                {
+                    DisplayNoContradiction();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                _feedbackLabel.Text = "[color=green]No contradiction found. These items appear consistent.[/color]";
+                GD.PrintErr($"Error checking contradiction: {ex.Message}");
+                _feedbackLabel.Text = $"[color=red]Error: {ex.Message}[/color]";
             }
 
             ClearSelections();
         }
 
-        private bool CheckPlaceholderContradiction()
+        private void DisplayContradictionFound(ContradictionResult contradiction)
         {
-            if (_selectedEvidence.Content.TryGetValue("time", out var evidenceTime) ||
-                _selectedEvidence.Content.TryGetValue("arrival_time", out evidenceTime))
-            {
-                if (_selectedTestimony.Metadata.TryGetValue("claimed_time", out var claimedTime) ||
-                    _selectedTestimony.Metadata.TryGetValue("claimed_time_start", out claimedTime))
-                {
-                    return evidenceTime?.ToString() != claimedTime?.ToString();
-                }
-            }
+            _feedbackLabel.Text = $"[color=red][b]⚠ CONTRADICTION DETECTED![/b][/color]\n" +
+                $"[b]Type:[/b] {contradiction.Type}\n" +
+                $"{contradiction.Description}";
 
-            return false;
+            var contradictionLabel = new Label();
+            contradictionLabel.Text = $"✓ [{contradiction.Type}] {contradiction.Description}";
+            contradictionLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.6f, 0.6f));
+            contradictionLabel.AutowrapMode = TextServer.AutowrapMode.Word;
+            _contradictionsList.AddChild(contradictionLabel);
+
+            _currentDossier.Contradictions.Add(contradiction);
+
+            GD.Print($"Contradiction detected: {contradiction.ContradictionId}");
+            GD.Print($"  Type: {contradiction.Type}");
+            GD.Print($"  Description: {contradiction.Description}");
+        }
+
+        private void DisplayNoContradiction()
+        {
+            _feedbackLabel.Text = "[color=green]No contradiction found. These items appear consistent.[/color]";
         }
 
         private void ClearSelections()

@@ -82,7 +82,19 @@ namespace DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors
             {
                 foreach (var evidenceIdentity in evidenceIdentities)
                 {
-                    if (AreIdentitiesConflicting(testimonyIdentity.Name, evidenceIdentity.Name))
+                    if (!testimonyIdentity.IsDenial &&
+                        AreIdentitiesConflicting(testimonyIdentity.Name, evidenceIdentity.Name))
+                    {
+                        return Task.FromResult(CreateContradictionResult(
+                            query.QueryId,
+                            testimony,
+                            evidence,
+                            testimonyIdentity,
+                            evidenceIdentity));
+                    }
+
+                    if (testimonyIdentity.IsDenial &&
+                        !AreIdentitiesConflicting(testimonyIdentity.Name, evidenceIdentity.Name))
                     {
                         return Task.FromResult(CreateContradictionResult(
                             query.QueryId,
