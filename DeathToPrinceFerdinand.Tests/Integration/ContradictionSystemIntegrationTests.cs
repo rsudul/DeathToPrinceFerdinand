@@ -4,6 +4,9 @@ using DeathToPrinceFerdinand.scripts.Core.Contradictions;
 using DeathToPrinceFerdinand.scripts.Core.Contradictions.Detectors;
 using DeathToPrinceFerdinand.scripts.Core.DependencyInjection;
 using DeathToPrinceFerdinand.scripts.Core.Models;
+using DeathToPrinceFerdinand.scripts.Core.Services;
+using System.Text.Json;
+using Moq;
 
 namespace DeathToPrinceFerdinand.Tests.Integration
 {
@@ -19,16 +22,75 @@ namespace DeathToPrinceFerdinand.Tests.Integration
 
             _testDataPath = Path.Combine(Directory.GetCurrentDirectory(), "TestData");
 
-            if (!Directory.Exists(_testDataPath))
-            {
-                Directory.CreateDirectory(_testDataPath);
-            }
-
             var services = new ServiceCollection();
-            services.AddContradictionSystem(_testDataPath);
+
+            var mockRepository = CreateRepositoryFromTestData();
+            services.AddSingleton<IInvestigationRepository>(mockRepository);
+
+            services.AddScoped<IContradictionEventPublisher, ContradictionEventPublisher>();
+            services.AddScoped<IInvestigationContext, InvestigationContext>();
+            services.AddScoped<IContradictionService, ContradictionService>();
+            services.AddScoped<ITestimonyQueryService, TestimonyQueryService>();
+            services.AddScoped<IEvidenceQueryService, EvidenceQueryService>();
+            services.AddScoped<IContradictionQueryFactory, ContradictionQueryFactory>();
             services.AddScoped<IContradictionDetector, TimelineContradictionsDetector>();
+            services.AddScoped<IContradictionDetector, LocationContradictionDetector>();
+            services.AddScoped<IContradictionDetector, IdentityContradictionDetector>();
 
             _serviceProvider = services.BuildServiceProvider();
+        }
+
+        private IInvestigationRepository CreateRepositoryFromTestData()
+        {
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                WriteIndented = true
+            };
+
+            var evidenceJson = File.ReadAllText(Path.Combine(_testDataPath, "evidence.json"));
+            var testimonyJson = File.ReadAllText(Path.Combine(_testDataPath, "testimony.json"));
+            var dossiersJson = File.ReadAllText(Path.Combine(_testDataPath, "dossiers.json"));
+
+            var evidence = JsonSerializer.Deserialize<List<Evidence>>(evidenceJson, jsonOptions);
+            var testimony = JsonSerializer.Deserialize<List<TestimonyStatement>>(testimonyJson, jsonOptions);
+            var dossiers = JsonSerializer.Deserialize<List<DossierState>>(dossiersJson, jsonOptions);
+
+            _output.WriteLine($"Loaded {evidence.Count} evidence items");
+            _output.WriteLine($"Loaded {testimony.Count} testimony items");
+            _output.WriteLine($"Loaded {dossiers.Count} dossiers");
+
+            foreach (var dossier in dossiers)
+            {
+                dossier.Testimony.Clear();
+                foreach (var testimonyStatement in testimony.Where(t => t.SuspectId == dossier.SuspectId))
+                {
+                    dossier.Testimony.Add(testimonyStatement);
+                }
+            }
+
+            var mockRepo = new Mock<IInvestigationRepository>();
+
+            mockRepo.Setup(r => r.GetAllTestimonyAsync()).ReturnsAsync(testimony);
+            mockRepo.Setup(r => r.GetAllEvidenceAsync()).ReturnsAsync(evidence);
+            mockRepo.Setup(r => r.GetAllDossiersAsync()).ReturnsAsync(dossiers);
+
+            foreach (var t in testimony)
+            {
+                mockRepo.Setup(r => r.GetTestimonyAsync(t.Id)).ReturnsAsync(t);
+            }
+
+            foreach (var e in evidence)
+            {
+                mockRepo.Setup(r => r.GetEvidenceAsync(e.Id)).ReturnsAsync(e);
+            }
+
+            foreach (var d in dossiers)
+            {
+                mockRepo.Setup(r => r.GetDossierAsync(d.SuspectId)).ReturnsAsync(d);
+            }
+
+            return mockRepo.Object;
         }
 
         [Fact]
@@ -225,6 +287,41 @@ namespace DeathToPrinceFerdinand.Tests.Integration
             Assert.Equal(ContradictionType.Identity, result.Type);
             Assert.Contains("N. Petrovic", result.Description);
             Assert.Contains("Marko Jovanović", result.Description);
+        }
+
+        [Fact]
+        public async Task DetectAsync_FullIntegration_IdentityDenialContradiction()
+        {
+            var service = _serviceProvider.GetRequiredService<IContradictionService>();
+            var factory = _serviceProvider.GetRequiredService<IContradictionQueryFactory>();
+
+            var query = factory.CreateTestimonyVsEvidence(
+                "ts_assassin_003",
+                "ev_tickets_001",
+                ContradictionType.Identity);
+
+            var result = await service.CheckContradictionAsync(query);
+
+            Assert.True(result.IsContradiction, "Should detect contradiction when suspect denies identity on evidence");
+            Assert.Equal(ContradictionType.Identity, result.Type);
+            Assert.Contains("denies", result.Description, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("N. Petrovic", result.Description);
+        }
+
+        [Fact]
+        public async Task DetectContradiction_IdentityDenial_ShouldFindContradiction()
+        {
+            var service = _serviceProvider.GetRequiredService<IContradictionService>();
+            var factory = _serviceProvider.GetRequiredService<IContradictionQueryFactory>();
+
+            var query = factory.CreateTestimonyVsEvidence("ts_assassin_003", "ev_tickets_001", ContradictionType.Identity);
+
+            var result = await service.CheckContradictionAsync(query);
+
+            Assert.True(result.IsContradiction, "Should detect contradiction when suspect denies identity on evidence");
+            Assert.Equal(ContradictionType.Identity, result.Type);
+            Assert.Contains("denies", result.Description, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("N. Petrovic", result.Description);
         }
 
         public void Dispose()
