@@ -71,7 +71,9 @@ namespace DeathToPrinceFerdinand.scripts.Core.Services
 
             var possibleContradictions = new List<ContradictionResult>();
 
-            foreach (var testimony in dossier.Testimony)
+            var testimonies = dossier.GetTestimony(_context);
+
+            foreach (var testimony in testimonies)
             {
                 var allEvidence = _context.GetAllEvidence();
                 foreach (var evidence in allEvidence)
@@ -112,12 +114,16 @@ namespace DeathToPrinceFerdinand.scripts.Core.Services
                 if (affectedSuspect != null)
                 {
                     var dossier = _context.GetDossier(affectedSuspect);
-                    if (dossier != null && dossier.Testimony.Any())
+                    if (dossier != null)
                     {
-                        var latestTestimony = dossier.Testimony.OrderByDescending(t => t.Timestamp).FirstOrDefault();
-                        if (latestTestimony != null)
+                        var testimonies = dossier.GetTestimony(_context);
+                        if (testimonies.Any())
                         {
-                            await _context.UpdateTestimonyAsync(latestTestimony.Id, resolution.AmendedTestimony);
+                            var latestTestimony = testimonies.OrderByDescending(t => t.Timestamp).FirstOrDefault();
+                            if (latestTestimony != null)
+                            {
+                                await _context.UpdateTestimonyAsync(latestTestimony.Id, resolution.AmendedTestimony);
+                            }
                         }
                     }
                 }
