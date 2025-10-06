@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using DeathToPrinceFerdinand.scripts.Core.Contradictions;
 
 namespace DeathToPrinceFerdinand.scripts.Core.Models
 {
@@ -15,11 +16,11 @@ namespace DeathToPrinceFerdinand.scripts.Core.Models
         public string? Alias { get; set; }
         public string? Codename { get; set; }
 
-        public List<TestimonyStatement> Testimony { get; set; } = new();
+        public List<string> TestimonyIds { get; set; } = new();
         public List<string> LinkedEvidenceIds { get; set; } = new();
         public List<ContradictionResult> Contradictions { get; set; } = new();
         public List<CrossReference> Relationships { get; set; } = new();
-        
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 
@@ -32,5 +33,12 @@ namespace DeathToPrinceFerdinand.scripts.Core.Models
         public int ResolvedContradictionsCount => Contradictions.Count(c => c.Resolution.HasAnyResolution);
 
         public bool HasUnresolvedContradictions => Contradictions.Any(c => !c.Resolution.HasAnyResolution);
+
+        public IEnumerable<TestimonyStatement> GetTestimony(IInvestigationContext context)
+        {
+            return TestimonyIds
+                .Select(id => context.GetTestimony(id))
+                .Where(t => t != null);
+        }
     }
 }

@@ -60,15 +60,6 @@ namespace DeathToPrinceFerdinand.Tests.Integration
             _output.WriteLine($"Loaded {testimony.Count} testimony items");
             _output.WriteLine($"Loaded {dossiers.Count} dossiers");
 
-            foreach (var dossier in dossiers)
-            {
-                dossier.Testimony.Clear();
-                foreach (var testimonyStatement in testimony.Where(t => t.SuspectId == dossier.SuspectId))
-                {
-                    dossier.Testimony.Add(testimonyStatement);
-                }
-            }
-
             var mockRepo = new Mock<IInvestigationRepository>();
 
             mockRepo.Setup(r => r.GetAllTestimonyAsync()).ReturnsAsync(testimony);
@@ -146,7 +137,7 @@ namespace DeathToPrinceFerdinand.Tests.Integration
             Assert.Equal("Marko Jovanović", dossier.Name);
             Assert.Equal("N. Petrovic", dossier.Alias);
             Assert.Equal("The Assassin", dossier.Codename);
-            Assert.NotEmpty(dossier.Testimony);
+            Assert.NotEmpty(dossier.TestimonyIds);
             Assert.NotEmpty(dossier.LinkedEvidenceIds);
         }
 

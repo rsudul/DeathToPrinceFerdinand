@@ -188,7 +188,7 @@ namespace DeathToPrinceFerdinand.scripts.UI
                 .ToList();
 
             GD.Print($"Loaded dossier for {_currentDossier.FullDisplayName}");
-            GD.Print($"  - {_currentDossier.Testimony.Count} testimony statements");
+            GD.Print($"  - {_currentDossier.TestimonyIds.Count} testimony statements");
             GD.Print($"  - {_availableEvidence.Count} evidence items");
 
             PopulateUI();
@@ -211,7 +211,8 @@ namespace DeathToPrinceFerdinand.scripts.UI
                 _evidenceList.AddChild(button);
             }
 
-            foreach (var testimony in _currentDossier.Testimony)
+            var testimonies = _currentDossier.GetTestimony(_context);
+            foreach (var testimony in testimonies)
             {
                 var button = new Button();
                 button.Text = $"• {testimony.CurrentText}";

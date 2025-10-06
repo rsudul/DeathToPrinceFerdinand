@@ -90,10 +90,9 @@ namespace DeathToPrinceFerdinand.scripts.Core.Services
             var dossier = await _repository.GetDossierAsync(testimony.SuspectId);
             if (dossier != null)
             {
-                var dossierTestimony = dossier.Testimony.FirstOrDefault(t => t.Id == statementId);
-                if (dossierTestimony != null)
+                if (dossier.TestimonyIds.Contains(statementId))
                 {
-                    dossierTestimony.AmendedText = amendedText;
+                    dossier.LastUpdated = DateTime.UtcNow;
                     await _repository.SaveDossierAsync(dossier);
                     await _eventPublisher.PublishDossierUpdatedAsync(dossier.SuspectId);
                 }
