@@ -202,11 +202,16 @@ namespace DeathToPrinceFerdinand.scripts.UI
             {
                 var button = new Button();
                 button.Text = $"□ {evidence.Title}";
-                button.ToggleMode = true;
+                button.ToggleMode = false;
                 button.Alignment = HorizontalAlignment.Left;
 
+                button.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
+                button.AddThemeColorOverride("font_hover_color", new Color(0.9f, 0.9f, 0.9f));
+                button.AddThemeColorOverride("font_pressed_color", new Color(0.9f, 0.9f, 0.9f));
+                button.AddThemeColorOverride("font_focus_color", new Color(0.9f, 0.9f, 0.9f));
+
                 var evidenceRef = evidence;
-                button.Toggled += (pressed) => OnEvidenceSelected(evidenceRef, pressed);
+                button.Pressed += () => OnEvidenceSelected(evidenceRef);
 
                 _evidenceList.AddChild(button);
             }
@@ -216,12 +221,17 @@ namespace DeathToPrinceFerdinand.scripts.UI
             {
                 var button = new Button();
                 button.Text = $"• {testimony.CurrentText}";
-                button.ToggleMode = true;
+                button.ToggleMode = false;
                 button.Alignment = HorizontalAlignment.Left;
-                button.CustomMinimumSize = new Vector2(0, 60);
+                button.CustomMinimumSize = new Vector2(0, 80);
+
+                button.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
+                button.AddThemeColorOverride("font_hover_color", new Color(0.9f, 0.9f, 0.9f));
+                button.AddThemeColorOverride("font_pressed_color", new Color(0.9f, 0.9f, 0.9f));
+                button.AddThemeColorOverride("font_focus_color", new Color(0.9f, 0.9f, 0.9f));
 
                 var testimonyRef = testimony;
-                button.Toggled += (pressed) => OnTestimonySelected(testimonyRef, pressed);
+                button.Pressed += () => OnTestimonySelected(testimonyRef);
 
                 _testimonyList.AddChild(button);
             }
@@ -229,42 +239,65 @@ namespace DeathToPrinceFerdinand.scripts.UI
             UpdateContradictionsList();
         }
 
-        private void OnEvidenceSelected(Evidence evidence, bool pressed)
+        private void OnEvidenceSelected(Evidence evidence)
         {
+            _selectedEvidence = evidence;
+
             foreach (Button button in _evidenceList.GetChildren())
             {
-                if (button.ButtonPressed && button.Text != $"□ {evidence.Title}")
+                var cleanTitle = button.Text.Replace("□ ", "").Replace("▶ ", "");
+                bool isThisButton = cleanTitle == evidence.Title;
+
+                if (isThisButton)
                 {
-                    button.ButtonPressed = false;
+                    button.AddThemeColorOverride("font_color", new Color(0.9f, 0.3f, 0.3f));
+                    button.AddThemeColorOverride("font_hover_color", new Color(0.9f, 0.3f, 0.3f));
+                    button.AddThemeColorOverride("font_pressed_color", new Color(0.9f, 0.3f, 0.3f));
+                    button.AddThemeColorOverride("font_focus_color", new Color(0.9f, 0.3f, 0.3f));
+                    button.Text = $"▶ {cleanTitle}";
+                }
+                else
+                {
+                    button.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
+                    button.AddThemeColorOverride("font_hover_color", new Color(0.9f, 0.9f, 0.9f));
+                    button.AddThemeColorOverride("font_pressed_color", new Color(0.9f, 0.9f, 0.9f));
+                    button.AddThemeColorOverride("font_focus_color", new Color(0.9f, 0.9f, 0.9f));
+                    button.Text = $"□ {cleanTitle}";
                 }
             }
 
-            _selectedEvidence = pressed ? evidence : null;
             UpdateCheckButtonState();
-
-            if (pressed)
-            {
-                _feedbackLabel.Text = $"[color=gray]Selected: {evidence.Title}[/color]";
-            }
+            _feedbackLabel.Text = $"[color=gray]Selected: {evidence.Title}[/color]";
         }
 
-        private void OnTestimonySelected(TestimonyStatement testimony, bool pressed)
+        private void OnTestimonySelected(TestimonyStatement testimony)
         {
+            _selectedTestimony = testimony;
+
             foreach (Button button in _testimonyList.GetChildren())
             {
-                if (button.ButtonPressed && button.Text != $"• {testimony.CurrentText}")
+                var testimonyPreview = testimony.CurrentText.Substring(0, Math.Min(30, testimony.CurrentText.Length));
+                bool isThisButton = button.Text.Contains(testimonyPreview);
+
+                if (isThisButton)
                 {
-                    button.ButtonPressed = false;
+                    button.AddThemeColorOverride("font_color", new Color(0.9f, 0.3f, 0.3f));
+                    button.AddThemeColorOverride("font_hover_color", new Color(0.9f, 0.3f, 0.3f));
+                    button.AddThemeColorOverride("font_pressed_color", new Color(0.9f, 0.3f, 0.3f));
+                    button.AddThemeColorOverride("font_focus_color", new Color(0.9f, 0.3f, 0.3f));
+                }
+                else
+                {
+                    button.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
+                    button.AddThemeColorOverride("font_hover_color", new Color(0.9f, 0.9f, 0.9f));
+                    button.AddThemeColorOverride("font_pressed_color", new Color(0.9f, 0.9f, 0.9f));
+                    button.AddThemeColorOverride("font_focus_color", new Color(0.9f, 0.9f, 0.9f));
                 }
             }
 
-            _selectedTestimony = pressed ? testimony : null;
             UpdateCheckButtonState();
-
-            if (pressed)
-            {
-                _feedbackLabel.Text = $"[color=gray]Selected testimony: {testimony.CurrentText.Substring(0, Math.Min(50, testimony.CurrentText.Length))}...[/color]";
-            }
+            var preview = testimony.CurrentText.Substring(0, Math.Min(60, testimony.CurrentText.Length));
+            _feedbackLabel.Text = $"[color=gray]Selected testimony: \"{preview}...\"[/color]";
         }
 
         private void UpdateCheckButtonState()
@@ -329,26 +362,45 @@ namespace DeathToPrinceFerdinand.scripts.UI
 
         private void DisplayContradictionFound(ContradictionResult contradiction)
         {
-            _feedbackLabel.Text = $"[color=red][b]⚠ CONTRADICTION DETECTED![/b][/color]\n" +
-                $"[b]Type:[/b] {contradiction.Type}\n" +
-                $"{contradiction.Description}";
+            _feedbackLabel.Text =
+                $"[bgcolor=#8B0000][color=#ffff00][center] ⚠️  C O N T R A D I C T I O N  ⚠️ [/center][/color][/bgcolor]\n\n" +
+                $"[color=#ff6b6b][b]TYPE:[/b] {contradiction.Type}[/color]\n" +
+                $"[color=#cccccc]{contradiction.Description}[/color]";
 
-            var contradictionLabel = new Label();
-            contradictionLabel.Text = $"✓ [{contradiction.Type}] {contradiction.Description}";
-            contradictionLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.6f, 0.6f));
-            contradictionLabel.AutowrapMode = TextServer.AutowrapMode.Word;
+            var contradictionLabel = new RichTextLabel();
+            contradictionLabel.BbcodeEnabled = true;
+            contradictionLabel.FitContent = true;
+            contradictionLabel.ScrollActive = false;
+            contradictionLabel.CustomMinimumSize = new Vector2(0, 60);
+            contradictionLabel.Text =
+                $"[bgcolor=#4a0000][color=#ff6b6b] ⚠️ CONTRADICTION [/color][/bgcolor]\n" +
+                $"[color=#ff9999][b]{contradiction.Type}:[/b][/color] {contradiction.Description}";
+            contradictionLabel.Modulate = new Color(1, 1, 1, 0);
             _contradictionsList.AddChild(contradictionLabel);
+
+            var tween = CreateTween();
+            tween.SetParallel(true);
+            tween.TweenProperty(contradictionLabel, "modulate:a", 1.0f, 0.4f)
+                .SetEase(Tween.EaseType.Out)
+                .SetTrans(Tween.TransitionType.Cubic);
+
+            contradictionLabel.Scale = new Vector2(0.9f, 0.9f);
+            tween.TweenProperty(contradictionLabel, "scale", Vector2.One, 0.4f)
+                .SetEase(Tween.EaseType.Out)
+                .SetTrans(Tween.TransitionType.Back);
 
             _currentDossier.Contradictions.Add(contradiction);
 
-            GD.Print($"Contradiction detected: {contradiction.ContradictionId}");
+            GD.Print($"✓ Contradiction detected: {contradiction.ContradictionId}");
             GD.Print($"  Type: {contradiction.Type}");
             GD.Print($"  Description: {contradiction.Description}");
         }
 
         private void DisplayNoContradiction()
         {
-            _feedbackLabel.Text = "[color=green]No contradiction found. These items appear consistent.[/color]";
+            _feedbackLabel.Text =
+                $"[color=#888888][i]No contradiction found.[/i][/color]\n" +
+                $"[color=#666666]These items appear consistent.[/color]";
         }
 
         private void ClearSelections()
@@ -359,11 +411,15 @@ namespace DeathToPrinceFerdinand.scripts.UI
             foreach (Button button in _evidenceList.GetChildren())
             {
                 button.ButtonPressed = false;
+                button.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
+                var title = button.Text.Replace("□ ", "").Replace("▶ ", "");
+                button.Text = $"□ {title}";
             }
 
             foreach (Button button in _testimonyList.GetChildren())
             {
                 button.ButtonPressed = false;
+                button.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
             }
 
             UpdateCheckButtonState();
@@ -376,23 +432,37 @@ namespace DeathToPrinceFerdinand.scripts.UI
                 child.QueueFree();
             }
 
-            foreach (var contradiction in _currentDossier.Contradictions)
-            {
-                var label = new Label();
-                label.Text = $"• {contradiction.Type}: {contradiction.Description}";
-                label.AddThemeColorOverride("font_color",
-                    contradiction.Resolution.HasAnyResolution
-                    ? new Color(0.6f, 1.0f, 0.6f)
-                    : new Color(1.0f, 0.6f, 0.6f));
-                _contradictionsList.AddChild(label);
-            }
-
             if (_currentDossier.Contradictions.Count == 0)
             {
                 var label = new Label();
                 label.Text = "No contradictions detected yet.";
                 label.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.6f));
                 _contradictionsList.AddChild(label);
+                return;
+            }
+
+            foreach (var contradiction in _currentDossier.Contradictions)
+            {
+                var richLabel = new RichTextLabel();
+                richLabel.BbcodeEnabled = true;
+                richLabel.FitContent = true;
+                richLabel.ScrollActive = false;
+                richLabel.CustomMinimumSize = new Vector2(0, 50);
+
+                if (contradiction.Resolution.HasAnyResolution)
+                {
+                    richLabel.Text =
+                        $"[bgcolor=#004a00][color=#90ee90] ✓ RESOLVED [/color][/bgcolor]\n" +
+                        $"[color=#90ee90]{contradiction.Type}:[/color] [color=#cccccc]{contradiction.Description}[/color]";
+                }
+                else
+                {
+                    richLabel.Text =
+                        $"[bgcolor=#4a0000][color=#ff6b6b] ⚠ ACTIVE [/color][/bgcolor]\n" +
+                        $"[color=#ff9999]{contradiction.Type}:[/color] [color=#cccccc]{contradiction.Description}";
+                }
+
+                _contradictionsList.AddChild(richLabel);
             }
         }
     }
