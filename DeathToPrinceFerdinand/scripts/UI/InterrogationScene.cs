@@ -52,14 +52,18 @@ namespace DeathToPrinceFerdinand.scripts.UI
         {
             var mainContainer = new MarginContainer();
             mainContainer.SetAnchorsPreset(LayoutPreset.FullRect);
-            mainContainer.AddThemeConstantOverride("margin_left", 20);
-            mainContainer.AddThemeConstantOverride("margin_top", 20);
-            mainContainer.AddThemeConstantOverride("margin_right", 20);
-            mainContainer.AddThemeConstantOverride("margin_bottom", 20);
+            var viewportSize = GetViewportRect().Size;
+            int margin = (int)(viewportSize.X * 0.02f);
+            mainContainer.AddThemeConstantOverride("margin_left", margin);
+            mainContainer.AddThemeConstantOverride("margin_top", margin);
+            mainContainer.AddThemeConstantOverride("margin_right", margin);
+            mainContainer.AddThemeConstantOverride("margin_bottom", margin);
             AddChild(mainContainer);
 
             var vbox = new VBoxContainer();
             vbox.AddThemeConstantOverride("separation", 10);
+            vbox.SizeFlagsVertical = SizeFlags.ExpandFill;
+            vbox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             mainContainer.AddChild(vbox);
 
             _headerLabel = new Label();
@@ -74,25 +78,30 @@ namespace DeathToPrinceFerdinand.scripts.UI
             var hbox = new HBoxContainer();
             hbox.AddThemeConstantOverride("separation", 15);
             hbox.SizeFlagsVertical = SizeFlags.ExpandFill;
+            hbox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             vbox.AddChild(hbox);
 
             var leftPanel = CreateEvidencePanel();
             leftPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            leftPanel.CustomMinimumSize = new Vector2(300, 0);
+            leftPanel.SizeFlagsStretchRatio = 0.3f;
             hbox.AddChild(leftPanel);
 
             var rightPanel = CreateTestimonyPanel();
             rightPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            rightPanel.CustomMinimumSize = new Vector2(400, 0);
+            rightPanel.SizeFlagsStretchRatio = 0.7f;
             hbox.AddChild(rightPanel);
         }
 
         private PanelContainer CreateEvidencePanel()
         {
             var panel = new PanelContainer();
+            panel.SizeFlagsVertical = SizeFlags.ExpandFill;
+            panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 
             var vbox = new VBoxContainer();
             vbox.AddThemeConstantOverride("separation", 8);
+            vbox.SizeFlagsVertical = SizeFlags.ExpandFill;
+            vbox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             panel.AddChild(vbox);
 
             var header = new Label();
@@ -118,9 +127,13 @@ namespace DeathToPrinceFerdinand.scripts.UI
         private PanelContainer CreateTestimonyPanel()
         {
             var panel = new PanelContainer();
+            panel.SizeFlagsVertical = SizeFlags.ExpandFill;
+            panel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 
             var vbox = new VBoxContainer();
             vbox.AddThemeConstantOverride("separation", 8);
+            vbox.SizeFlagsVertical = SizeFlags.ExpandFill;
+            vbox.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             panel.AddChild(vbox);
 
             var infoLabel = new Label();
@@ -142,7 +155,6 @@ namespace DeathToPrinceFerdinand.scripts.UI
             _currentStatementDisplay.BbcodeEnabled = true;
             _currentStatementDisplay.FitContent = true;
             _currentStatementDisplay.ScrollActive = false;
-            _currentStatementDisplay.CustomMinimumSize = new Vector2(0, 100);
             _currentStatementDisplay.Text = "[color=#cccccc][i]Press 'Begin Interrogation' to start...[/i][/color]";
             vbox.AddChild(_currentStatementDisplay);
 
@@ -176,7 +188,6 @@ namespace DeathToPrinceFerdinand.scripts.UI
 
             var scrollContainer = new ScrollContainer();
             scrollContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
-            scrollContainer.CustomMinimumSize = new Vector2(0, 150);
             vbox.AddChild(scrollContainer);
 
             _testimonyList = new VBoxContainer();
@@ -209,7 +220,6 @@ namespace DeathToPrinceFerdinand.scripts.UI
             _feedbackLabel.BbcodeEnabled = true;
             _feedbackLabel.FitContent = true;
             _feedbackLabel.ScrollActive = false;
-            _feedbackLabel.CustomMinimumSize = new Vector2(0, 60);
             vbox.AddChild(_feedbackLabel);
 
             return panel;
@@ -409,7 +419,6 @@ namespace DeathToPrinceFerdinand.scripts.UI
             contradictionLabel.BbcodeEnabled = true;
             contradictionLabel.FitContent = true;
             contradictionLabel.ScrollActive = false;
-            contradictionLabel.CustomMinimumSize = new Vector2(0, 60);
             contradictionLabel.Text =
                 $"[bgcolor=#4a0000][color=#ff6b6b] ⚠️ CONTRADICTION [/color][/bgcolor]\n" +
                 $"[color=#ff9999][b]{contradiction.Type}:[/b][/color] {contradiction.Description}";
@@ -485,7 +494,6 @@ namespace DeathToPrinceFerdinand.scripts.UI
                 richLabel.BbcodeEnabled = true;
                 richLabel.FitContent = true;
                 richLabel.ScrollActive = false;
-                richLabel.CustomMinimumSize = new Vector2(0, 50);
 
                 if (contradiction.Resolution.HasAnyResolution)
                 {
@@ -561,7 +569,6 @@ namespace DeathToPrinceFerdinand.scripts.UI
             button.Text = $"• {testimony.CurrentText}";
             button.ToggleMode = false;
             button.Alignment = HorizontalAlignment.Left;
-            button.CustomMinimumSize = new Vector2(0, 60);
 
             button.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
             button.AddThemeColorOverride("font_hover_color", new Color(0.9f, 0.9f, 0.9f));
