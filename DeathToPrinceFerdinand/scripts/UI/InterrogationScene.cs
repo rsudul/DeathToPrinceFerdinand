@@ -17,6 +17,11 @@ namespace DeathToPrinceFerdinand.scripts.UI
         private Button _checkContradictionButton;
         private RichTextLabel _feedbackLabel;
 
+        private RichTextLabel _currentStatementDisplay;
+        private Button _continueButton;
+        private Button _pressButton;
+        private Button _presentEvidenceButton;
+
         private DossierState _currentDossier;
         private List<Evidence> _availableEvidence = new();
         private Evidence _selectedEvidence;
@@ -25,6 +30,8 @@ namespace DeathToPrinceFerdinand.scripts.UI
         private IContradictionService _contradictionService;
         private IContradictionQueryFactory _queryFactory;
         private IInvestigationContext _context;
+
+        private InterrogationState _interrogationState;
 
         public override void _Ready()
         {
@@ -117,7 +124,7 @@ namespace DeathToPrinceFerdinand.scripts.UI
             panel.AddChild(vbox);
 
             var infoLabel = new Label();
-            infoLabel.Text = "SUSPECT DOSSIER";
+            infoLabel.Text = "INTERROGATION";
             infoLabel.AddThemeFontSizeOverride("font_size", 18);
             infoLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
             vbox.AddChild(infoLabel);
@@ -125,23 +132,59 @@ namespace DeathToPrinceFerdinand.scripts.UI
             var separator1 = new HSeparator();
             vbox.AddChild(separator1);
 
-            var testimonyHeader = new Label();
-            testimonyHeader.Text = "TESTIMONY";
-            testimonyHeader.AddThemeFontSizeOverride("font_size", 16);
-            testimonyHeader.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
-            vbox.AddChild(testimonyHeader);
+            var currentStatementLabel = new Label();
+            currentStatementLabel.Text = "CURRENT STATEMENT";
+            currentStatementLabel.AddThemeFontSizeOverride("font_size", 14);
+            currentStatementLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            vbox.AddChild(currentStatementLabel);
+
+            _currentStatementDisplay = new RichTextLabel();
+            _currentStatementDisplay.BbcodeEnabled = true;
+            _currentStatementDisplay.FitContent = true;
+            _currentStatementDisplay.ScrollActive = false;
+            _currentStatementDisplay.CustomMinimumSize = new Vector2(0, 100);
+            _currentStatementDisplay.Text = "[color=#cccccc][i]Press 'Begin Interrogation' to start...[/i][/color]";
+            vbox.AddChild(_currentStatementDisplay);
+
+            var actionsHBox = new HBoxContainer();
+            actionsHBox.AddThemeConstantOverride("separation", 10);
+            vbox.AddChild(actionsHBox);
+
+            _continueButton = new Button();
+            _continueButton.Text = "Continue";
+            _continueButton.Pressed += OnContinuePressed;
+            actionsHBox.AddChild(_continueButton);
+
+            _pressButton = new Button();
+            _pressButton.Text = "Press for Details";
+            _pressButton.Disabled = true;
+            actionsHBox.AddChild(_pressButton);
+
+            _presentEvidenceButton = new Button();
+            _presentEvidenceButton.Text = "Present Evidence";
+            _presentEvidenceButton.Disabled = true;
+            actionsHBox.AddChild(_presentEvidenceButton);
+
+            var separator2 = new HSeparator();
+            vbox.AddChild(separator2);
+
+            var transcriptHeader = new Label();
+            transcriptHeader.Text = "TRANSCRIPT";
+            transcriptHeader.AddThemeFontSizeOverride("font_size", 14);
+            transcriptHeader.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f));
+            vbox.AddChild(transcriptHeader);
 
             var scrollContainer = new ScrollContainer();
             scrollContainer.SizeFlagsVertical = SizeFlags.ExpandFill;
-            scrollContainer.CustomMinimumSize = new Vector2(0, 200);
+            scrollContainer.CustomMinimumSize = new Vector2(0, 150);
             vbox.AddChild(scrollContainer);
 
             _testimonyList = new VBoxContainer();
             _testimonyList.AddThemeConstantOverride("separation", 5);
             scrollContainer.AddChild(_testimonyList);
 
-            var separator2 = new HSeparator();
-            vbox.AddChild(separator2);
+            var separator3 = new HSeparator();
+            vbox.AddChild(separator3);
 
             var contradictionsHeader = new Label();
             contradictionsHeader.Text = "CONTRADICTIONS";
@@ -153,8 +196,8 @@ namespace DeathToPrinceFerdinand.scripts.UI
             _contradictionsList.AddThemeConstantOverride("separation", 5);
             vbox.AddChild(_contradictionsList);
 
-            var separator3 = new HSeparator();
-            vbox.AddChild(separator3);
+            var separator4 = new HSeparator();
+            vbox.AddChild(separator4);
 
             _checkContradictionButton = new Button();
             _checkContradictionButton.Text = "Check for Contradiction";
@@ -187,6 +230,13 @@ namespace DeathToPrinceFerdinand.scripts.UI
                 .Where(e => e != null)
                 .ToList();
 
+            _interrogationState = new InterrogationState
+            {
+                SuspectId = _currentDossier.SuspectId,
+                AvailableTestimonyIds = new List<string>(_currentDossier.TestimonyIds),
+                CurrentTestimonyIndex = 0
+            };
+
             GD.Print($"Loaded dossier for {_currentDossier.FullDisplayName}");
             GD.Print($"  - {_currentDossier.TestimonyIds.Count} testimony statements");
             GD.Print($"  - {_availableEvidence.Count} evidence items");
@@ -216,25 +266,13 @@ namespace DeathToPrinceFerdinand.scripts.UI
                 _evidenceList.AddChild(button);
             }
 
-            var testimonies = _currentDossier.GetTestimony(_context);
-            foreach (var testimony in testimonies)
-            {
-                var button = new Button();
-                button.Text = $"• {testimony.CurrentText}";
-                button.ToggleMode = false;
-                button.Alignment = HorizontalAlignment.Left;
-                button.CustomMinimumSize = new Vector2(0, 80);
+            var emptyLabel = new Label();
+            emptyLabel.Text = "Transcript is empty. Begin interrogation to see statements.";
+            emptyLabel.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.6f));
+            _testimonyList.AddChild(emptyLabel);
 
-                button.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
-                button.AddThemeColorOverride("font_hover_color", new Color(0.9f, 0.9f, 0.9f));
-                button.AddThemeColorOverride("font_pressed_color", new Color(0.9f, 0.9f, 0.9f));
-                button.AddThemeColorOverride("font_focus_color", new Color(0.9f, 0.9f, 0.9f));
-
-                var testimonyRef = testimony;
-                button.Pressed += () => OnTestimonySelected(testimonyRef);
-
-                _testimonyList.AddChild(button);
-            }
+            _currentStatementDisplay.Text =
+                "[color=#cccccc][i]Press 'Continue' to begin the interrogation...[/i][/color]";
 
             UpdateContradictionsList();
         }
@@ -464,6 +502,87 @@ namespace DeathToPrinceFerdinand.scripts.UI
 
                 _contradictionsList.AddChild(richLabel);
             }
+        }
+
+        private void OnContinuePressed()
+        {
+            if (_interrogationState == null || !_interrogationState.HasMoreTestimony)
+            {
+                DisplayInterrogationComplete();
+                return;
+            }
+
+            var currentTestimonyId = _interrogationState.GetCurrentTestimonyId();
+            if (currentTestimonyId == null)
+            {
+                return;
+            }
+
+            var testimony = _context.GetTestimony(currentTestimonyId);
+            if (testimony == null)
+            {
+                GD.PrintErr($"Failed to load testimony: {currentTestimonyId}");
+                _interrogationState.AdvanceToNextTestimony();
+                return;
+            }
+
+            DisplayCurrentStatement(testimony);
+
+            AddToTranscript(testimony);
+
+            _interrogationState.AdvanceToNextTestimony();
+
+            if (!_interrogationState.HasMoreTestimony)
+            {
+                _continueButton.Text = "End Interrogation";
+            }
+        }
+
+        private void DisplayCurrentStatement(TestimonyStatement testimony)
+        {
+            _currentStatementDisplay.Text =
+                $"[color=#ffcc99][b]Suspect:[/b][/color] [color=#cccccc]\"{testimony.CurrentText}\"[/color]";
+
+            GD.Print($"[Interrogation] Revealed: {testimony.Id}");
+        }
+
+        private void AddToTranscript(TestimonyStatement testimony)
+        {
+            if (_testimonyList.GetChildCount() > 0)
+            {
+                var firstChild = _testimonyList.GetChild(0);
+                if (firstChild is Label)
+                {
+                    firstChild.QueueFree();
+                }
+            }
+
+            var button = new Button();
+            button.Text = $"• {testimony.CurrentText}";
+            button.ToggleMode = false;
+            button.Alignment = HorizontalAlignment.Left;
+            button.CustomMinimumSize = new Vector2(0, 60);
+
+            button.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
+            button.AddThemeColorOverride("font_hover_color", new Color(0.9f, 0.9f, 0.9f));
+            button.AddThemeColorOverride("font_pressed_color", new Color(0.9f, 0.9f, 0.9f));
+            button.AddThemeColorOverride("font_focus_color", new Color(0.9f, 0.9f, 0.9f));
+
+            var testimonyRef = testimony;
+            button.Pressed += () => OnTestimonySelected(testimonyRef);
+
+            _testimonyList.AddChild(button);
+        }
+
+        private void DisplayInterrogationComplete()
+        {
+            _currentStatementDisplay.Text =
+                "[color=#90ee90][b]Interrogation Complete[/b][/color]\n" +
+                "[color=#cccccc][i]You may review the transcript and check for contradictions.[/i][/color]";
+
+            _continueButton.Disabled = true;
+
+            GD.Print("[Interrogation] Complete - all testimony revealed");
         }
     }
 }
