@@ -2,9 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dlfo3xt5fh62k" path="res://scripts/UI/InterrogationScene.cs" id="1_4ci35"]
 
-[node name="InterrogationScene" type="Node2D"]
-
-[node name="Control" type="Control" parent="."]
+[node name="InterrogationScene" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
